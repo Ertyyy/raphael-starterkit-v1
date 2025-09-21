@@ -3,7 +3,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "check-env": "node scripts/check-env.js",
+    "prebuild": "npm run check-env"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",

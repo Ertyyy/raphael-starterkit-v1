@@ -13,16 +13,25 @@ const CREEM_WEBHOOK_SECRET = process.env.CREEM_WEBHOOK_SECRET!;
 export async function POST(request: Request) {
   try {
     const body = await request.text();
+    console.log("Webhook received body:", body);
 
     const headersList = headers();
     const signature = (await headersList).get("creem-signature") || "";
+    console.log("Webhook signature:", signature ? "present" : "missing");
+
+    // Log environment check
+    console.log("Webhook secret configured:", !!CREEM_WEBHOOK_SECRET);
 
     // Verify the webhook signature
     if (
       !signature ||
       !verifyCreemWebhookSignature(body, signature, CREEM_WEBHOOK_SECRET)
     ) {
-      console.error("Invalid webhook signature");
+      console.error("Invalid webhook signature", { 
+        hasSignature: !!signature,
+        hasSecret: !!CREEM_WEBHOOK_SECRET,
+        bodyLength: body.length 
+      });
       return new NextResponse("Invalid signature", { status: 401 });
     }
 
@@ -69,7 +78,7 @@ export async function POST(request: Request) {
 
 async function handleCheckoutCompleted(event: CreemWebhookEvent) {
   const checkout = event.object;
-  console.log("Processing completed checkout:", checkout);
+  console.log("Processing completed checkout:", JSON.stringify(checkout, null, 2));
 
   try {
     // Validate required data
@@ -78,27 +87,51 @@ async function handleCheckoutCompleted(event: CreemWebhookEvent) {
       throw new Error("user_id is required in checkout metadata");
     }
 
+    if (!checkout.customer) {
+      console.error("Missing customer data in checkout:", checkout);
+      throw new Error("customer data is required in checkout");
+    }
+
+    console.log("Checkout validation passed:", {
+      userId: checkout.metadata.user_id,
+      productType: checkout.metadata?.product_type,
+      credits: checkout.metadata?.credits,
+      hasSubscription: !!checkout.subscription
+    });
+
     // Create or update customer
     const customerId = await createOrUpdateCustomer(
       checkout.customer,
       checkout.metadata.user_id
     );
 
+    console.log("Customer processed successfully:", customerId);
+
     // Check if this is a credit purchase
     if (checkout.metadata?.product_type === "credits") {
+      const creditsAmount = parseInt(checkout.metadata?.credits || "0");
+      console.log("Processing credit purchase:", creditsAmount);
+      
       await addCreditsToCustomer(
         customerId,
-        checkout.metadata?.credits,
+        creditsAmount,
         checkout.order.id,
-        `Purchased ${checkout.metadata?.credits} credits`
+        `Purchased ${creditsAmount} credits`
       );
+      
+      console.log("Credits added successfully");
     }
     // If subscription exists, create or update it
     else if (checkout.subscription) {
+      console.log("Processing subscription:", checkout.subscription.id);
       await createOrUpdateSubscription(checkout.subscription, customerId);
+      console.log("Subscription processed successfully");
     }
+
+    console.log("Checkout completed processing finished successfully");
   } catch (error) {
     console.error("Error handling checkout completed:", error);
+    console.error("Checkout data:", JSON.stringify(checkout, null, 2));
     throw error;
   }
 }

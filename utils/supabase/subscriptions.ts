@@ -7,6 +7,13 @@ export async function createOrUpdateCustomer(
 ) {
   const supabase = createServiceRoleClient();
 
+  console.log("Creating/updating customer:", { 
+    creemCustomerId: creemCustomer.id, 
+    userId,
+    email: creemCustomer.email 
+  });
+
+  // First try to find by creem_customer_id
   const { data: existingCustomer, error: fetchError } = await supabase
     .from("customers")
     .select()
@@ -14,10 +21,12 @@ export async function createOrUpdateCustomer(
     .single();
 
   if (fetchError && fetchError.code !== "PGRST116") {
+    console.error("Error fetching existing customer:", fetchError);
     throw fetchError;
   }
 
   if (existingCustomer) {
+    console.log("Updating existing customer:", existingCustomer.id);
     const { error } = await supabase
       .from("customers")
       .update({
@@ -28,10 +37,48 @@ export async function createOrUpdateCustomer(
       })
       .eq("id", existingCustomer.id);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating customer:", error);
+      throw error;
+    }
     return existingCustomer.id;
   }
 
+  // Check if user already has a customer record (to avoid UNIQUE constraint violation)
+  const { data: existingUserCustomer, error: userFetchError } = await supabase
+    .from("customers")
+    .select()
+    .eq("user_id", userId)
+    .single();
+
+  if (userFetchError && userFetchError.code !== "PGRST116") {
+    console.error("Error checking existing user customer:", userFetchError);
+    throw userFetchError;
+  }
+
+  if (existingUserCustomer) {
+    console.log("Updating existing user customer with new Creem ID:", existingUserCustomer.id);
+    // Update the existing customer record with the new Creem customer ID
+    const { error } = await supabase
+      .from("customers")
+      .update({
+        creem_customer_id: creemCustomer.id,
+        email: creemCustomer.email,
+        name: creemCustomer.name,
+        country: creemCustomer.country,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", existingUserCustomer.id);
+
+    if (error) {
+      console.error("Error updating user customer:", error);
+      throw error;
+    }
+    return existingUserCustomer.id;
+  }
+
+  // Create new customer
+  console.log("Creating new customer");
   const { data: newCustomer, error } = await supabase
     .from("customers")
     .insert({
@@ -45,7 +92,12 @@ export async function createOrUpdateCustomer(
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error creating new customer:", error);
+    throw error;
+  }
+  
+  console.log("Created new customer:", newCustomer.id);
   return newCustomer.id;
 }
 
