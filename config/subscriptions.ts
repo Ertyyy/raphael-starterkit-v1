@@ -58,7 +58,7 @@ export const CREDITS_TIERS: ProductTier[] = [
   {
     name: "Basic Package",
     id: "tier-3-credits",
-    productId: "prod_1hqWQqs13U1z862hJacH6P", // $9 one-time purchase
+    productId: "prod_737EX2fSZ2ASoeLJlnKjdV", // 替换为你的Creem基础包产品ID
     priceMonthly: "$9",
     description: "3 credits for testing and small-scale projects.",
     creditAmount: 3,
@@ -74,7 +74,7 @@ export const CREDITS_TIERS: ProductTier[] = [
   {
     name: "Standard Package",
     id: "tier-6-credits",
-    productId: "prod_1hqWQqs13U1z862hJacH6P", // $13 one-time purchase
+    productId: "prod_50HvzGAxArBa36GJ2PghrC", // 替换为你的Creem标准包产品ID
     priceMonthly: "$13",
     description: "6 credits for medium-sized applications.",
     creditAmount: 6,
@@ -90,7 +90,7 @@ export const CREDITS_TIERS: ProductTier[] = [
   {
     name: "Premium Package",
     id: "tier-9-credits",
-    productId: "prod_1hqWQqs13U1z862hJacH6P", // $29 one-time purchase
+    productId: "prod_2yTCm1QFCMr5uM7wy22FxQ", // 替换为你的Creem高级包产品ID
     priceMonthly: "$29",
     description: "9 credits for larger applications and production use.",
     creditAmount: 9,
