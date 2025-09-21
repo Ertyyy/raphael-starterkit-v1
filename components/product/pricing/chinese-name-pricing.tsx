@@ -9,6 +9,8 @@ import { useRouter } from "next/navigation";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { CREDITS_TIERS } from "@/config/subscriptions";
+import { createCheckoutSession } from "@/app/actions";
 
 interface PricingTier {
   id: string;
@@ -100,25 +102,32 @@ export default function ChineseNamePricing({ onScrollToForm }: ChineseNamePricin
     setIsProcessing(tierId);
     
     try {
-      // Integration with the starter kit's payment system
-      // This would use the existing Creem.io integration
-      const response = await fetch('/api/creem/create-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          productType: 'chinese-name-credits',
-          quantity: 1000, // 1000 credits
-          userId: user.id,
-        }),
-      });
+      // Find the credit tier configuration
+      const creditTier = CREDITS_TIERS.find(tier => 
+        tier.id === tierId || 
+        (tierId === "credit-pack" && tier.featured) // Fallback for credit-pack ID
+      );
 
-      if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+      if (!creditTier) {
+        throw new Error('Credit tier not found');
       }
 
-      const { checkoutUrl } = await response.json();
+      console.log('Creating checkout for credit tier:', {
+        tierId,
+        productId: creditTier.productId,
+        creditAmount: creditTier.creditAmount,
+        price: creditTier.priceMonthly
+      });
+
+      // Use the existing createCheckoutSession function
+      const checkoutUrl = await createCheckoutSession(
+        creditTier.productId, // This is the Creem product ID
+        user.email || '',
+        user.id,
+        'credits',
+        creditTier.creditAmount,
+        creditTier.discountCode || undefined
+      );
       
       if (checkoutUrl) {
         window.location.href = checkoutUrl;
@@ -127,10 +136,10 @@ export default function ChineseNamePricing({ onScrollToForm }: ChineseNamePricin
       }
       
     } catch (error) {
-      console.error('Payment error:', error);
+      console.error('Purchase error:', error);
       toast({
-        title: "Payment Failed",
-        description: "Failed to process payment. Please try again.",
+        title: "Purchase Failed",
+        description: error instanceof Error ? error.message : "Unable to process your purchase. Please try again.",
         variant: "destructive",
       });
     } finally {
