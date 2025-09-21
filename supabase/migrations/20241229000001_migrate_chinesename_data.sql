@@ -3,8 +3,11 @@
 
 -- Step 1: Create temporary tables if they exist in the old ChineseName database
 -- Note: These CREATE statements will fail silently if tables don't exist
-
+--
 -- Create user_credits table structure (in case it needs to be recreated)
+
+----有问题的表单
+
 CREATE TABLE IF NOT EXISTS public.user_credits (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
